@@ -5,8 +5,8 @@ from pydantic import BaseModel
 from typing import List, Optional
 import json
 from langchain_core.messages import HumanMessage, AIMessage
-from app.agents.therapy_graph import therapy_graph
-from app.core.config import get_settings
+from agents.therapy_graph import therapy_graph
+from core.config import get_settings
 
 router = APIRouter()
 settings = get_settings()

@@ -1,8 +1,8 @@
 ---
 title: Mindful AI API
 emoji: 🧠
-colorFrom: teal
-colorTo: blue
+colorFrom: blue
+colorTo: gray
 sdk: docker
 pinned: false
 ---

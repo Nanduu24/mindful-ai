@@ -1,7 +1,7 @@
 # app/agents/therapy_graph.py
 from langgraph.graph import StateGraph, END
-from app.agents.state import TherapyState
-from app.agents.nodes import (
+from agents.state import TherapyState
+from agents.nodes import (
     intake_node,
     assess_mood_node,
     safety_check_node,

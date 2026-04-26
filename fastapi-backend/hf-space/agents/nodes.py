@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-from app.agents.state import TherapyState
-from app.core.config import get_settings
+from agents.state import TherapyState
+from core.config import get_settings
 
 load_dotenv()
 settings = get_settings()
@@ -122,7 +122,7 @@ async def assess_mood_node(state: TherapyState) -> dict:
 # ── NEW: Memory retrieval node ───────────────────────────────
 async def retrieve_memory_node(state: TherapyState) -> dict:
     """RAG step — pull relevant past memories into context."""
-    from app.memory.retrieval import retrieve_relevant_memories
+    from memory.retrieval import retrieve_relevant_memories
 
     user_id = state.get("user_id", "")
     messages = state.get("messages", [])

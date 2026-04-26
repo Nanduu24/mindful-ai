@@ -1,5 +1,5 @@
 # app/memory/retrieval.py
-from app.memory.embeddings import generate_embedding, get_supabase
+from memory.embeddings import generate_embedding, get_supabase
 
 async def retrieve_relevant_memories(
     user_id: str,

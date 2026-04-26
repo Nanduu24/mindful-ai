@@ -1,8 +1,8 @@
 # app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import get_settings
-from app.api.chat import router as chat_router
+from core.config import get_settings
+from api.chat import router as chat_router
 
 settings = get_settings()
 

@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client
 import google.generativeai as genai
-from app.core.config import get_settings
+from core.config import get_settings
 
 load_dotenv()
 settings = get_settings()
