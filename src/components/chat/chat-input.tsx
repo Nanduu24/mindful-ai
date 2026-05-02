@@ -4,6 +4,7 @@
 import { useState, KeyboardEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { VoiceButton } from "./voice-button";
 import { useChatStore } from "@/store/chat-store";
 import { Send } from "lucide-react";
 
@@ -22,6 +23,10 @@ export function ChatInput({ onSend }: ChatInputProps) {
     setValue("");
   };
 
+  const handleVoiceTranscribed = async (text: string) => {
+    onSend(text);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -37,10 +42,14 @@ export function ChatInput({ onSend }: ChatInputProps) {
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Share what's on your mind… (Enter to send, Shift+Enter for new line)"
+            placeholder="Type a message or tap the mic to speak..."
             rows={1}
             disabled={isStreaming}
             className="flex-1 min-h-[44px] max-h-[160px]"
+          />
+          <VoiceButton
+            onTranscribed={handleVoiceTranscribed}
+            disabled={isStreaming}
           />
           <Button
             onClick={handleSend}

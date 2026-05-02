@@ -1,11 +1,13 @@
-// src/middleware.ts
+// src/proxy.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/pricing",                  // ← add this
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhook(.*)",
+  "/api/stripe/webhook",       // ← also Stripe webhook must be public
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

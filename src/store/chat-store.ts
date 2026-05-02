@@ -3,7 +3,6 @@ import { create } from "zustand";
 import { Message, Session } from "@/types";
 
 interface ChatStore {
-  // Session state
   sessions: Session[];
   currentSessionId: string | null;
   setSessions: (sessions: Session[]) => void;
@@ -11,17 +10,19 @@ interface ChatStore {
   addSession: (session: Session) => void;
   removeSession: (id: string) => void;
 
-  // Message state
   messages: Message[];
   setMessages: (messages: Message[]) => void;
   addMessage: (message: Message) => void;
   updateLastMessage: (content: string) => void;
 
-  // UI state
   isStreaming: boolean;
   setIsStreaming: (v: boolean) => void;
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
+
+  // Voice mode
+  voiceMode: boolean;
+  setVoiceMode: (v: boolean) => void;
 }
 
 export const useChatStore = create<ChatStore>((set) => ({
@@ -59,4 +60,7 @@ export const useChatStore = create<ChatStore>((set) => ({
   isSidebarOpen: true,
   toggleSidebar: () =>
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+
+  voiceMode: false,
+  setVoiceMode: (v) => set({ voiceMode: v }),
 }));

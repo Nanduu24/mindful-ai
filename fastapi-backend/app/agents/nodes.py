@@ -6,7 +6,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from app.agents.state import TherapyState
 from app.core.config import get_settings
-
+print(f"[LangSmith] tracing={os.getenv('LANGCHAIN_TRACING_V2')} project={os.getenv('LANGCHAIN_PROJECT')} key={'SET' if os.getenv('LANGCHAIN_API_KEY') else 'MISSING'}")
 load_dotenv()
 settings = get_settings()
 

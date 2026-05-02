@@ -1,7 +1,27 @@
 // src/hooks/use-chat-stream.ts
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useChatStore } from "@/store/chat-store";
 import { Message } from "@/types";
+
+// Single, persistent audio element that gets unlocked once
+let unlockedAudio: HTMLAudioElement | null = null;
+
+export function getUnlockedAudio(): HTMLAudioElement {
+  if (!unlockedAudio) {
+    unlockedAudio = new Audio();
+    unlockedAudio.preload = "auto";
+  }
+  return unlockedAudio;
+}
+
+export function unlockAudioPlayback() {
+  // Called from a user gesture — plays a tiny silent clip to unlock
+  const audio = getUnlockedAudio();
+  // 1-second silent WAV as data URI
+  audio.src =
+    "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAVFYAAFRWAAABAAgAZGF0YQAAAAA=";
+  audio.play().catch(() => {});
+}
 
 export function useChatStream() {
   const {
@@ -17,12 +37,41 @@ export function useChatStream() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const speakText = useCallback(async (text: string) => {
+    try {
+      const res = await fetch("/api/voice/synthesize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) {
+        console.error("[speak] failed:", await res.text());
+        return;
+      }
+      const audioBlob = await res.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Reuse the unlocked audio element
+      const audio = getUnlockedAudio();
+      audio.src = audioUrl;
+      audio.onended = () => URL.revokeObjectURL(audioUrl);
+
+      try {
+        await audio.play();
+        console.log("[speak] playing!");
+      } catch (err) {
+        console.error("[speak] play blocked, will retry on next click:", err);
+      }
+    } catch (err) {
+      console.error("[speak]", err);
+    }
+  }, []);
+
   const sendMessage = useCallback(
     async (content: string) => {
       if (!content.trim()) return;
       setError(null);
 
-      // Add user message immediately
       const userMessage: Message = {
         id: crypto.randomUUID(),
         role: "user",
@@ -31,7 +80,6 @@ export function useChatStream() {
       };
       addMessage(userMessage);
 
-      // Add empty assistant message (will be filled by stream)
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -42,10 +90,10 @@ export function useChatStream() {
       setIsStreaming(true);
 
       try {
-        const allMessages = [
-          ...messages,
-          userMessage,
-        ].map((m) => ({ role: m.role, content: m.content }));
+        const allMessages = [...messages, userMessage].map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -78,14 +126,14 @@ export function useChatStream() {
             try {
               const parsed = JSON.parse(data);
 
-              // Capture sessionId from first chunk
               if (parsed.sessionId && !currentSessionId) {
                 setCurrentSessionId(parsed.sessionId);
-                // Add new session to sidebar
                 const newSession = {
                   id: parsed.sessionId,
                   user_id: "",
-                  title: content.slice(0, 60) + (content.length > 60 ? "..." : ""),
+                  title:
+                    content.slice(0, 60) +
+                    (content.length > 60 ? "..." : ""),
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                   message_count: 1,
@@ -98,13 +146,17 @@ export function useChatStream() {
                 updateLastMessage(accumulated);
               }
             } catch {
-              // skip malformed chunks
+              // ignore
             }
           }
         }
-      } catch (err) {
+
+        const shouldSpeak = useChatStore.getState().voiceMode;
+        if (shouldSpeak && accumulated) {
+          speakText(accumulated);
+        }
+      } catch {
         setError("Something went wrong. Please try again.");
-        // Remove the empty assistant message on error
         updateLastMessage("I'm sorry, something went wrong. Please try again.");
       } finally {
         setIsStreaming(false);
@@ -119,8 +171,9 @@ export function useChatStream() {
       setIsStreaming,
       setCurrentSessionId,
       setSessions,
+      speakText,
     ]
   );
 
-  return { sendMessage, error };
+  return { sendMessage, error, speakText };
 }

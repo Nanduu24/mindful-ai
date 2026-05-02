@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Session } from "@/types";
 import { PenSquare, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export function Sidebar() {
   const {
@@ -86,12 +87,18 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* New chat button */}
-        <div className="px-3 py-3">
+        {/* New chat + dashboard link */}
+        <div className="px-3 py-3 space-y-2">
           <Button onClick={handleNewChat} className="w-full gap-2 justify-center">
             <PenSquare className="w-4 h-4" />
             New session
           </Button>
+          <Link
+            href="/dashboard"
+            className="block w-full text-center text-xs text-gray-500 hover:text-teal-600 py-1.5"
+          >
+            View dashboard →
+          </Link>
         </div>
 
         {/* Session list */}
@@ -122,7 +129,8 @@ export function Sidebar() {
                     tabIndex={0}
                     onClick={(e) => handleDeleteSession(e, session.id)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handleDeleteSession(e as never, session.id);
+                      if (e.key === "Enter")
+                        handleDeleteSession(e as never, session.id);
                     }}
                     className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0"
                   >
@@ -137,7 +145,15 @@ export function Sidebar() {
         {/* Footer */}
         <div className="border-t border-gray-100 px-4 py-3 flex items-center justify-between">
           <UserButton />
-          <span className="text-xs text-gray-400">Free plan</span>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/pricing"
+              className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+            >
+              Upgrade ↑
+            </Link>
+            <span className="text-xs text-gray-400">Free plan</span>
+          </div>
         </div>
       </aside>
     </>
