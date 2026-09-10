@@ -11,6 +11,21 @@ Full-stack: a **Next.js 16** app talking to a **FastAPI + LangGraph** agent back
 
 ---
 
+## Screenshots
+
+> Drop images into [`docs/screenshots/`](docs/screenshots) with the filenames below
+> and they'll appear here.
+
+| Chat | Dashboard |
+|------|-----------|
+| ![Chat conversation](docs/screenshots/chat.png) | ![Mood dashboard](docs/screenshots/dashboard.png) |
+
+| Session history | Voice mode |
+|-----------------|------------|
+| ![Session history](docs/screenshots/history.png) | ![Voice mode](docs/screenshots/voice.png) |
+
+---
+
 ## Features
 
 - **LangGraph therapy agent** — each turn runs through a 6-stage pipeline:
