@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     elevenlabs_voice_id: str = "21m00Tcm4TlvDq8ikWAM"
 
     groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
 
     @property
     def origins_list(self) -> list[str]:

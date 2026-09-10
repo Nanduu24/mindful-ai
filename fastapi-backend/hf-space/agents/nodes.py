@@ -19,9 +19,9 @@ def get_llm():
     if provider == "groq":
         api_key = settings.groq_api_key or os.getenv("GROQ_API_KEY", "")
         return ChatGroq(
-            model="llama-3.3-70b-versatile",
+            model=settings.groq_model,
             groq_api_key=api_key,
-            max_tokens=1024,
+            max_tokens=2048,
             temperature=0.7,
         )
 

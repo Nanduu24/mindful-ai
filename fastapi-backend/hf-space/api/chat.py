@@ -3,23 +3,41 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
+import asyncio
 import json
 from langchain_core.messages import HumanMessage, AIMessage
 from agents.therapy_graph import therapy_graph
+from memory.embeddings import store_memory
 from core.config import get_settings
 
 router = APIRouter()
 settings = get_settings()
 
+
 class ChatMessage(BaseModel):
     role: str
     content: str
+
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
     session_id: Optional[str] = None
     user_id: Optional[str] = None
     user_name: Optional[str] = None
+
+
+async def store_memory_safe(user_id: str, session_id: str, content: str):
+    """Store a memory without breaking the request if it fails."""
+    try:
+        await store_memory(
+            user_id=user_id,
+            session_id=session_id,
+            content=content,
+            memory_type="session",
+        )
+    except Exception as e:
+        print(f"[memory] Storage failed (non-fatal): {e}")
+
 
 @router.post("/chat")
 async def chat(request: ChatRequest):
@@ -49,6 +67,24 @@ async def chat(request: ChatRequest):
 
         # Run the graph
         result = await therapy_graph.ainvoke(initial_state)
+
+        # 🧠 Store the latest user message as a memory (RAG ingestion)
+        # Skip for anonymous users and very short messages
+        user_id = request.user_id or "anonymous"
+        if (
+            user_id != "anonymous"
+            and request.messages
+            and request.messages[-1].role == "user"
+            and len(request.messages[-1].content.strip()) > 20
+        ):
+            # Run storage in background — don't block the response
+            asyncio.create_task(
+                store_memory_safe(
+                    user_id=user_id,
+                    session_id=request.session_id or "default",
+                    content=request.messages[-1].content.strip(),
+                )
+            )
 
         return {
             "response": result["final_response"],
