@@ -13,8 +13,6 @@ Full-stack: a **Next.js 16** app talking to a **FastAPI + LangGraph** agent back
 
 ## Screenshots
 
-> Drop images into [`docs/screenshots/`](docs/screenshots) with the filenames below
-> and they'll appear here.
 
 | Chat | Dashboard |
 |------|-----------|
