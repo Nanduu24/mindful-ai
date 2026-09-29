@@ -13,8 +13,9 @@ load_dotenv()
 settings = get_settings()
 
 
-def get_llm():
-    provider = (settings.ai_provider or "gemini").lower()
+def _build_llm(provider: str):
+    """Create a LangChain chat client for a single provider."""
+    provider = provider.lower()
 
     if provider == "groq":
         api_key = settings.groq_api_key or os.getenv("GROQ_API_KEY", "")
@@ -39,6 +40,33 @@ def get_llm():
         google_api_key=api_key,
         max_output_tokens=1024,
     )
+
+
+def get_llm():
+    """Primary configured provider (kept for backward compatibility)."""
+    return _build_llm(settings.ai_provider or "gemini")
+
+
+def _provider_order() -> list:
+    """Configured provider first, then the others as fallbacks."""
+    primary = (settings.ai_provider or "gemini").lower()
+    return [primary] + [p for p in ("groq", "gemini", "claude") if p != primary]
+
+
+async def invoke_with_failover(lc_messages):
+    """Try each provider in order. If one fails (API error, rate limit,
+    bad key), fall back to the next. Only raises if every provider fails."""
+    last_error = None
+    for provider in _provider_order():
+        try:
+            llm = _build_llm(provider)
+            response = await llm.ainvoke(lc_messages)
+            print(f"[LLM] responded via '{provider}'")
+            return response
+        except Exception as e:
+            last_error = e
+            print(f"[LLM failover] '{provider}' failed: {e} — trying next provider")
+    raise RuntimeError(f"All LLM providers failed. Last error: {last_error}")
 
 def build_system_prompt(state: TherapyState) -> str:
     name = state.get("user_name") or "there"
@@ -263,7 +291,6 @@ async def safety_check_node(state: TherapyState) -> dict:
     return {"crisis_detected": crisis_detected}
 
 async def generate_response_node(state: TherapyState) -> dict:
-    llm = get_llm()
     system_prompt = build_system_prompt(state)
     crisis = state.get("crisis_detected", False)
 
@@ -292,7 +319,7 @@ async def generate_response_node(state: TherapyState) -> dict:
             4. Stay present and warm — do not panic or be clinical"""
         ))
 
-    response = await llm.ainvoke(lc_messages)
+    response = await invoke_with_failover(lc_messages)
     return {
         "final_response": response.content,
         "session_turn": state.get("session_turn", 1) + 1,
