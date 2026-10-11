@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DayReweave Simulator</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --border: #2a2d3a;
+            --text: #e1e4ed;
+            --text-dim: #8b8fa3;
+            --accent: #6c8aff;
+            --accent-dim: #3d4f8a;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
+            --skip: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .header .subtitle {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .card h2 {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+
+        .steps-list {
+            list-style: none;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+        }
+
+        .step-item:last-child { border-bottom: none; }
+
+        .step-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .step-indicator.pending { border: 2px solid var(--text-dim); background: transparent; }
+        .step-indicator.completed { background: var(--success); }
+        .step-indicator.skipped { background: var(--skip); }
+        .step-indicator.blocked { background: var(--error); }
+        .step-indicator.current { border: 2px solid var(--accent); background: var(--accent-dim); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .step-name { flex: 1; }
+        .step-name.done { text-decoration: line-through; color: var(--text-dim); }
+
+        .step-duration { color: var(--text-dim); font-size: 0.75rem; }
+        .step-essential { color: var(--warning); font-size: 0.7rem; }
+        .step-status { font-size: 0.7rem; text-transform: uppercase; }
+
+        .transcript {
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .transcript-entry {
+            font-size: 0.8rem;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .transcript-entry.user {
+            background: var(--accent-dim);
+            align-self: flex-end;
+            max-width: 80%;
+        }
+
+        .transcript-entry.assistant {
+            background: var(--border);
+            align-self: flex-start;
+            max-width: 80%;
+        }
+
+        .transcript-entry.error {
+            background: #3b1111;
+            color: var(--error);
+        }
+
+        .input-area {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-area input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .input-area input:focus { border-color: var(--accent); }
+
+        .input-area button, .action-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .input-area button:hover, .action-btn:hover { opacity: 0.9; }
+
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            font-size: 0.7rem;
+            padding: 6px 10px;
+        }
+
+        .action-btn.secondary {
+            background: var(--border);
+            color: var(--text-dim);
+        }
+
+        .action-btn.danger {
+            background: #5c2020;
+            color: var(--error);
+        }
+
+        #session-info {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        .setup-form label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            margin-top: 10px;
+        }
+
+        .setup-form input, .setup-form textarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+
+        .setup-form textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DayReweave</h1>
+        <div class="subtitle">Simulator &mdash; web preview of the voice experience</div>
+    </div>
+
+    <div class="container">
+        <!-- Setup view -->
+        <div id="setup-view" class="card">
+            <h2>New Routine</h2>
+            <div class="setup-form">
+                <label>Departure time</label>
+                <input type="time" id="departure-time" value="08:30">
+
+                <label>Tasks (JSON — id, name, duration_min per line)</label>
+                <textarea id="tasks-input">[
+  {"id": "shower", "name": "Shower", "duration_min": 10},
+  {"id": "breakfast", "name": "Breakfast", "duration_min": 15},
+  {"id": "pack_laptop", "name": "Pack laptop", "duration_min": 3},
+  {"id": "read_news", "name": "Read news", "duration_min": 10},
+  {"id": "get_dressed", "name": "Get dressed", "duration_min": 5}
+]</textarea>
+
+                <label>Essential task IDs (comma-separated)</label>
+                <input type="text" id="essential-ids" value="shower,breakfast,pack_laptop">
+
+                <label>User ID</label>
+                <input type="text" id="user-id" value="demo_user">
+
+                <div class="action-bar" style="margin-top: 16px;">
+                    <button class="action-btn" onclick="createPlan()">Create plan</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active routine view -->
+        <div id="routine-view" class="hidden">
+            <div class="card">
+                <h2>Progress</h2>
+                <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 0%"></div></div>
+                <div class="progress-stats">
+                    <span id="stat-completed">0 done</span>
+                    <span id="stat-remaining">0 min left</span>
+                    <span id="stat-departure">Leave at --:--</span>
+                </div>
+                <ul class="steps-list" id="steps-list"></ul>
+            </div>
+
+            <div class="card">
+                <h2>Voice Transcript</h2>
+                <div class="transcript" id="transcript"></div>
+            </div>
+
+            <div class="card">
+                <h2>Actions</h2>
+                <div class="input-area">
+                    <input type="text" id="command-input" placeholder="Type a command or speak naturally..." onkeydown="if(event.key==='Enter')sendCommand()">
+                    <button onclick="sendCommand()">Send</button>
+                </div>
+                <div class="action-bar">
+                    <button class="action-btn" onclick="quickAction('complete')">Complete</button>
+                    <button class="action-btn" onclick="quickAction('skip')">Skip</button>
+                    <button class="action-btn secondary" onclick="quickAction('pause')">Pause</button>
+                    <button class="action-btn secondary" onclick="quickAction('resume')">Resume</button>
+                    <button class="action-btn secondary" onclick="quickAction('undo')">Undo</button>
+                    <button class="action-btn danger" onclick="showSetup()">New Session</button>
+                </div>
+            </div>
+
+            <div id="session-info"></div>
+        </div>
+    </div>
+
+    <script>
+        const MCP_URL = '/mcp';
+        let sessionId = null;
+        let mcpSessionId = null;
+
+        async function mcpCall(toolName, args) {
+            const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
+            if (mcpSessionId) headers['Mcp-Session-Id'] = mcpSessionId;
+
+            if (!mcpSessionId) {
+                const initRes = await fetch(MCP_URL, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        id: 0,
+                        method: 'initialize',
+                        params: {
+                            protocolVersion: '2025-03-26',
+                            capabilities: {},
+                            clientInfo: { name: 'dayreweave-simulator', version: '0.1.0' }
+                        }
+                    })
+                });
+                mcpSessionId = initRes.headers.get('Mcp-Session-Id');
+
+                await fetch(MCP_URL, {
+                    method: 'POST',
+                    headers: { ...headers, 'Mcp-Session-Id': mcpSessionId },
+                    body: JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' })
+                });
+            }
+
+            const res = await fetch(MCP_URL, {
+                method: 'POST',
+                headers: { ...headers, 'Mcp-Session-Id': mcpSessionId },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: Date.now(),
+                    method: 'tools/call',
+                    params: { name: toolName, arguments: args }
+                })
+            });
+
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+            const content = data.result?.content?.[0]?.text;
+            return content ? JSON.parse(content) : data.result;
+        }
+
+        function addTranscript(text, type = 'assistant') {
+            const el = document.getElementById('transcript');
+            const entry = document.createElement('div');
+            entry.className = `transcript-entry ${type}`;
+            entry.textContent = text;
+            el.appendChild(entry);
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function updateProgress(progress) {
+            if (!progress) return;
+            const pct = progress.total_steps > 0
+                ? Math.round(((progress.completed + progress.skipped) / progress.total_steps) * 100)
+                : 0;
+            document.getElementById('progress-fill').style.width = pct + '%';
+            document.getElementById('stat-completed').textContent = `${progress.completed}/${progress.total_steps} done`;
+            document.getElementById('stat-remaining').textContent = `${progress.remaining_minutes} min left`;
+            document.getElementById('stat-departure').textContent = `Leave at ${progress.departure_time}`;
+
+            const list = document.getElementById('steps-list');
+            list.innerHTML = '';
+            (progress.steps || []).forEach((s, i) => {
+                const isCurrent = progress.current_step && s.id === progress.current_step.id;
+                const li = document.createElement('li');
+                li.className = 'step-item';
+                li.innerHTML = `
+                    <span class="step-indicator ${isCurrent ? 'current' : s.status}"></span>
+                    <span class="step-name ${s.status === 'completed' || s.status === 'skipped' ? 'done' : ''}">${s.name}</span>
+                    ${s.essential ? '<span class="step-essential">essential</span>' : ''}
+                    <span class="step-duration">${s.duration_min}m</span>
+                    <span class="step-status">${s.status}</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function refreshProgress() {
+            if (!sessionId) return;
+            try {
+                const progress = await mcpCall('get_progress', { session_id: sessionId });
+                updateProgress(progress);
+            } catch (e) {
+                console.error('refresh error', e);
+            }
+        }
+
+        async function createPlan() {
+            try {
+                const departure = document.getElementById('departure-time').value;
+                const tasks = JSON.parse(document.getElementById('tasks-input').value);
+                const essentials = document.getElementById('essential-ids').value.split(',').map(s => s.trim()).filter(Boolean);
+                const userId = document.getElementById('user-id').value || 'demo_user';
+
+                mcpSessionId = null;
+                const result = await mcpCall('create_plan', {
+                    departure_time: departure,
+                    tasks,
+                    essential_task_ids: essentials,
+                    user_id: userId,
+                });
+
+                sessionId = result.session_id;
+                document.getElementById('session-info').textContent = `Session: ${sessionId}`;
+
+                document.getElementById('setup-view').classList.add('hidden');
+                document.getElementById('routine-view').classList.remove('hidden');
+
+                addTranscript(result.message);
+                await refreshProgress();
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function quickAction(action) {
+            if (!sessionId) return;
+            try {
+                let result;
+                if (action === 'complete') {
+                    addTranscript('Done with this step', 'user');
+                    result = await mcpCall('complete_step', { session_id: sessionId });
+                } else if (action === 'skip') {
+                    addTranscript('Skip this one', 'user');
+                    result = await mcpCall('skip_step', { session_id: sessionId });
+                } else if (action === 'pause') {
+                    addTranscript('Pause', 'user');
+                    result = await mcpCall('pause_routine', { session_id: sessionId });
+                } else if (action === 'resume') {
+                    addTranscript('Resume', 'user');
+                    result = await mcpCall('resume_routine', { session_id: sessionId });
+                } else if (action === 'undo') {
+                    addTranscript('Undo that', 'user');
+                    result = await mcpCall('undo_last', { session_id: sessionId });
+                }
+                addTranscript(result.message);
+                await refreshProgress();
+            } catch (e) {
+                addTranscript('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function sendCommand() {
+            const input = document.getElementById('command-input');
+            const text = input.value.trim();
+            if (!text || !sessionId) return;
+            input.value = '';
+            addTranscript(text, 'user');
+
+            const lower = text.toLowerCase();
+
+            try {
+                let result;
+                if (lower.startsWith('complete') || lower === 'done' || lower === 'finished') {
+                    result = await mcpCall('complete_step', { session_id: sessionId });
+                } else if (lower.startsWith('skip')) {
+                    result = await mcpCall('skip_step', { session_id: sessionId });
+                } else if (lower === 'pause' || lower === 'hold on') {
+                    result = await mcpCall('pause_routine', { session_id: sessionId });
+                } else if (lower === 'resume' || lower === "i'm back") {
+                    result = await mcpCall('resume_routine', { session_id: sessionId });
+                } else if (lower === 'undo' || lower.startsWith('undo')) {
+                    result = await mcpCall('undo_last', { session_id: sessionId });
+                } else if (lower.startsWith('replan')) {
+                    const mins = parseInt(lower.match(/\d+/)?.[0] || '30');
+                    result = await mcpCall('replan', { session_id: sessionId, available_minutes: mins });
+                } else if (lower.startsWith('restore') || lower.includes("haven't")) {
+                    const parts = lower.split(/\s+/);
+                    const stepId = parts[parts.length - 1];
+                    result = await mcpCall('restore_step', { session_id: sessionId, step_id: stepId });
+                } else if (lower === 'progress' || lower === 'status') {
+                    result = await mcpCall('get_progress', { session_id: sessionId });
+                    result = { message: `${result.completed}/${result.total_steps} done, ${result.remaining_minutes} min left.` };
+                } else {
+                    result = { message: 'Commands: complete, skip, pause, resume, undo, replan <min>, restore <step_id>, progress' };
+                }
+                addTranscript(result.message);
+                await refreshProgress();
+            } catch (e) {
+                addTranscript('Error: ' + e.message, 'error');
+            }
+        }
+
+        function showSetup() {
+            sessionId = null;
+            mcpSessionId = null;
+            document.getElementById('setup-view').classList.remove('hidden');
+            document.getElementById('routine-view').classList.add('hidden');
+            document.getElementById('transcript').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
